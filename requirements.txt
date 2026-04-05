@@ -1,0 +1,7 @@
+opencv-python
+numpy
+Pillow
+yt-dlp
+google-auth
+google-auth-oauthlib
+google-api-python-client
