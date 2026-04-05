@@ -11,12 +11,11 @@ import time
 from datetime import date
 from pathlib import Path
 
-import cv2
-import numpy as np
-from PIL import Image, ImageDraw, ImageFont
-
 import db
 import seo
+
+# cv2, numpy, and PIL are imported lazily inside the functions that use them
+# so that Flask/gunicorn starts fast without loading 500 MB of image libs.
 
 logger = logging.getLogger("pipeline")
 
@@ -26,8 +25,11 @@ logger = logging.getLogger("pipeline")
 SETTINGS_FILE = os.environ.get("SETTINGS_FILE", "converter_settings.json")
 
 def load_settings() -> dict:
-    with open(SETTINGS_FILE, "r") as f:
-        return json.load(f)
+    try:
+        with open(SETTINGS_FILE, "r") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
 
 
 # ──────────────────────────────────────────────
@@ -154,6 +156,9 @@ def _load_font(size: int):
 
 
 def _make_text_panel(hex_color: str, size: tuple, text: str, text_color: str, font_size: int):
+    import cv2
+    import numpy as np
+    from PIL import Image, ImageDraw, ImageFont
     hex_color = hex_color.lstrip("#")
     r, g, b = int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
     img = Image.new("RGB", size, (r, g, b))
@@ -220,6 +225,9 @@ def convert_to_shorts(video_path: str, output_folder: str, settings: dict) -> st
     Convert a video to YouTube Shorts format (1080×1920) with text overlays.
     Returns path to the output file.
     """
+    import cv2
+    import numpy as np
+
     Path(output_folder).mkdir(parents=True, exist_ok=True)
 
     cap = cv2.VideoCapture(video_path)

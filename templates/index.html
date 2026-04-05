@@ -163,6 +163,7 @@
 
         <button type="submit" class="btn btn-primary w-full">Save Settings</button>
         <p id="save-msg" class="text-center text-green-400 text-sm hidden">Saved!</p>
+        <p id="save-err" class="text-center text-red-400 text-sm hidden"></p>
       </form>
     </div>
 
@@ -259,7 +260,6 @@
       if (s.privacy_status)         document.getElementById('cfg-privacy').value = s.privacy_status;
       if (s.youtube_title)          document.getElementById('cfg-title').value = s.youtube_title;
       if (s.youtube_tags)           document.getElementById('cfg-tags').value = s.youtube_tags;
-      if (s.youtube_description)    document.getElementById('cfg-desc').value = s.youtube_description;
       if (s.top_text)               document.getElementById('cfg-top-text').value = s.top_text;
       if (s.bottom_text)            document.getElementById('cfg-bot-text').value = s.bottom_text;
       // Platform toggles
@@ -290,7 +290,6 @@
       privacy_status: document.getElementById('cfg-privacy').value,
       youtube_title: document.getElementById('cfg-title').value.trim(),
       youtube_tags: document.getElementById('cfg-tags').value.trim(),
-      youtube_description: document.getElementById('cfg-desc').value.trim(),
       top_text: document.getElementById('cfg-top-text').value.trim(),
       bottom_text: document.getElementById('cfg-bot-text').value.trim(),
       enable_youtube: document.getElementById('cfg-enable-yt').checked,
@@ -306,15 +305,24 @@
       hashtag_sets: document.getElementById('cfg-hashtags').value
         .split('\n').map(s => s.trim()).filter(Boolean),
     };
-    await fetch('/api/settings', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(payload)
-    });
     const msg = document.getElementById('save-msg');
-    msg.classList.remove('hidden');
-    setTimeout(() => msg.classList.add('hidden'), 3000);
-    loadStatus();
+    const errMsg = document.getElementById('save-err');
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error(`Server returned ${res.status}`);
+      msg.classList.remove('hidden');
+      errMsg.classList.add('hidden');
+      setTimeout(() => msg.classList.add('hidden'), 3000);
+      loadStatus();
+    } catch (err) {
+      errMsg.textContent = 'Save failed: ' + err.message;
+      errMsg.classList.remove('hidden');
+      msg.classList.add('hidden');
+    }
   }
 
   // ── Run Now ─────────────────────────────────────────────────
