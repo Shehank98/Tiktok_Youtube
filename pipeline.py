@@ -170,13 +170,27 @@ def _make_text_panel(hex_color: str, size: tuple, text: str, text_color: str, fo
     return cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
 
 
+def _check_ffmpeg() -> bool:
+    """Return True if ffmpeg/ffprobe are available on PATH."""
+    try:
+        subprocess.run(["ffprobe", "-version"], capture_output=True, timeout=5)
+        return True
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return False
+
+
 def _merge_audio(processed_video: str, original_video: str) -> bool:
     """Copy audio from original into the processed video using ffmpeg."""
-    # Probe for audio
+    if not _check_ffmpeg():
+        logger.warning("  ffprobe/ffmpeg not found — video will have no audio. "
+                       "Ensure ffmpeg is installed (nixpacks.toml adds it on Railway).")
+        return False
+
+    # Probe for audio stream
     probe = subprocess.run(
         ["ffprobe", "-v", "error", "-select_streams", "a",
          "-show_entries", "stream=index", "-of", "default=nk=1:nw=1", original_video],
-        capture_output=True, text=True
+        capture_output=True, text=True, timeout=30
     )
     if probe.returncode != 0 or not probe.stdout.strip():
         logger.info("  No audio in source; keeping silent output")
@@ -193,7 +207,7 @@ def _merge_audio(processed_video: str, original_video: str) -> bool:
         "-movflags", "+faststart", "-shortest",
         final_path,
     ]
-    res = subprocess.run(cmd, capture_output=True, text=True)
+    res = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
     if res.returncode != 0:
         logger.warning("  ffmpeg audio merge error: %s", res.stderr[:200])
         return False

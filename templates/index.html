@@ -327,7 +327,7 @@
     setTimeout(() => { btn.disabled = false; btn.textContent = '▶ Run Now'; }, 5000);
   }
 
-  // ── Live log via SSE ─────────────────────────────────────────
+  // ── Live log via SSE (auto-reconnect) ───────────────────────
   const logBox = document.getElementById('log-box');
   function appendLog(msg) {
     const line = document.createElement('div');
@@ -336,9 +336,25 @@
     if (logBox.children.length > 200) logBox.removeChild(logBox.firstChild);
     logBox.scrollTop = logBox.scrollHeight;
   }
-  const es = new EventSource('/api/logs');
-  es.onmessage = e => { if (e.data) appendLog(e.data); };
-  es.onerror = () => appendLog('[log stream disconnected — refresh to reconnect]');
+
+  let _es = null;
+  let _esRetryDelay = 2000;
+  function connectSSE() {
+    if (_es) { try { _es.close(); } catch(_) {} }
+    _es = new EventSource('/api/logs');
+    _es.onopen = () => { _esRetryDelay = 2000; };
+    _es.onmessage = e => { if (e.data) appendLog(e.data); };
+    _es.onerror = () => {
+      _es.close();
+      // Auto-reconnect with back-off (max 15s)
+      setTimeout(() => {
+        appendLog('[reconnecting log stream…]');
+        connectSSE();
+        _esRetryDelay = Math.min(_esRetryDelay * 2, 15000);
+      }, _esRetryDelay);
+    };
+  }
+  connectSSE();
 
   // ── Init ────────────────────────────────────────────────────
   loadSettings();
