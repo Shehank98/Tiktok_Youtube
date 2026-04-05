@@ -16,6 +16,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 import db
+import seo
 
 logger = logging.getLogger("pipeline")
 
@@ -366,10 +367,11 @@ def run_pipeline(log_callback=None):
     download_folder = settings.get("download_folder", "./downloads")
     output_folder = settings.get("output_folder", "./output")
     title_template = settings.get("youtube_title", "#{count} Viral Short")
-    description = settings.get("youtube_description",
-                               "Like and Subscribe!\n\n#shorts #viral #trending")
     tags = [t.strip() for t in settings.get("youtube_tags", "shorts,viral").split(",")]
     privacy = settings.get("privacy_status", "public")
+    enable_youtube = settings.get("enable_youtube", True)
+    enable_instagram = settings.get("enable_instagram", False)
+    enable_facebook = settings.get("enable_facebook", False)
 
     # Pick a channel (round-robin via a simple counter file)
     channel = channels[0] if len(channels) == 1 else _pick_channel(channels)
@@ -396,22 +398,53 @@ def run_pipeline(log_callback=None):
             db.record_upload(fname, "", "", "failed")
             continue
 
-        # Build title (replace #{count} with upload number)
+        # Build title and description
         total_ever = db.get_daily_count() + 1
-        title = title_template.replace("#{count}", str(total_ever)).replace("#", str(total_ever))
+        title = seo.generate_title(title_template, total_ever)
+        description = seo.generate_description(total_ever)
 
         log(f"  Uploading {os.path.basename(out_path)}…")
-        try:
-            vid_id = with_retry(upload_to_youtube, out_path, title, description, tags, privacy)
-            db.record_upload(fname, vid_id, title, "success")
+        yt_id = ""
+        upload_ok = False
+
+        # ── YouTube ──────────────────────────────────────────────
+        if enable_youtube:
+            try:
+                yt_id = with_retry(upload_to_youtube, out_path, title, description, tags, privacy)
+                log(f"  YouTube → youtube.com/watch?v={yt_id}")
+                upload_ok = True
+            except Exception as e:
+                log(f"  YouTube upload failed: {e}")
+
+        # ── Instagram ─────────────────────────────────────────────
+        if enable_instagram:
+            try:
+                from platforms.instagram import upload_reel as ig_upload
+                ig_id = with_retry(ig_upload, out_path, description)
+                log(f"  Instagram → reel published (id: {ig_id})")
+                upload_ok = True
+            except Exception as e:
+                log(f"  Instagram upload failed: {e}")
+
+        # ── Facebook ──────────────────────────────────────────────
+        if enable_facebook:
+            try:
+                from platforms.facebook import upload_reel as fb_upload
+                fb_id = with_retry(fb_upload, out_path, description)
+                log(f"  Facebook → reel published (id: {fb_id})")
+                upload_ok = True
+            except Exception as e:
+                log(f"  Facebook upload failed: {e}")
+
+        if upload_ok:
+            db.record_upload(fname, yt_id, title, "success")
             # Move to uploaded/ folder
             uploaded_dir = os.path.join(output_folder, "uploaded")
             Path(uploaded_dir).mkdir(parents=True, exist_ok=True)
             shutil.move(out_path, os.path.join(uploaded_dir, os.path.basename(out_path)))
-            log(f"  Done → youtube.com/watch?v={vid_id}")
+            log(f"  Done — moved to uploaded/")
             uploaded += 1
-        except Exception as e:
-            log(f"  Upload failed for {fname}: {e}")
+        else:
             db.record_upload(fname, "", title, "failed")
 
         if db.get_daily_count() >= limit:

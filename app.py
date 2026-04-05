@@ -11,7 +11,7 @@ from datetime import date
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
-from flask import Flask, Response, jsonify, render_template, request, stream_with_context
+from flask import Flask, Response, jsonify, render_template, request, send_from_directory, stream_with_context
 
 import db
 import pipeline
@@ -168,6 +168,25 @@ def api_logs():
     return Response(stream_with_context(event_stream()),
                     mimetype="text/event-stream",
                     headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+# ──────────────────────────────────────────────
+# Video file serving (used by Instagram API to fetch video)
+# ──────────────────────────────────────────────
+@app.route("/videos/<path:filename>")
+def serve_video(filename):
+    """
+    Serve a converted video file so Instagram can fetch it via public URL.
+    Only files from the output folder are served.
+    Set PUBLIC_BASE_URL env var to your Railway app URL so Instagram knows
+    where to fetch: https://your-app.railway.app/videos/<filename>
+    """
+    try:
+        settings = pipeline.load_settings()
+    except Exception:
+        settings = {}
+    output_folder = os.path.abspath(settings.get("output_folder", "./output"))
+    return send_from_directory(output_folder, filename)
 
 
 # ──────────────────────────────────────────────

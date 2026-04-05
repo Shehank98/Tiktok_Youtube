@@ -112,11 +112,6 @@
           <input id="cfg-tags" type="text" class="input" placeholder="shorts,viral,trending" />
         </div>
 
-        <div>
-          <label class="text-xs text-slate-400 block mb-1">Description</label>
-          <textarea id="cfg-desc" rows="3" class="input" placeholder="Like and Subscribe!&#10;&#10;#shorts #viral"></textarea>
-        </div>
-
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="text-xs text-slate-400 block mb-1">Top Bar Text</label>
@@ -126,6 +121,44 @@
             <label class="text-xs text-slate-400 block mb-1">Bottom Bar Text</label>
             <input id="cfg-bot-text" type="text" class="input" placeholder="Subscribe" />
           </div>
+        </div>
+
+        <!-- Platform toggles -->
+        <div>
+          <label class="text-xs text-slate-400 block mb-2">Platforms to upload to</label>
+          <div class="flex gap-4">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" id="cfg-enable-yt" class="w-4 h-4 accent-indigo-500" />
+              <span class="text-sm text-slate-300">YouTube</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" id="cfg-enable-ig" class="w-4 h-4 accent-pink-500" />
+              <span class="text-sm text-slate-300">Instagram Reels</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" id="cfg-enable-fb" class="w-4 h-4 accent-blue-500" />
+              <span class="text-sm text-slate-300">Facebook Reels</span>
+            </label>
+          </div>
+          <p class="text-xs text-slate-500 mt-1">Instagram &amp; Facebook require extra env vars — see platforms/ docs</p>
+        </div>
+
+        <!-- Affiliate links -->
+        <div>
+          <label class="text-xs text-slate-400 block mb-1">
+            Affiliate Links — one per line, format: <code class="text-indigo-300">Label | https://your-link.com</code>
+          </label>
+          <textarea id="cfg-affiliates" rows="3" class="input font-mono text-xs"
+            placeholder="Amazon deal | https://amzn.to/xxxxx&#10;ClickBank product | https://hop.clickbank.net/xxxxx"></textarea>
+        </div>
+
+        <!-- Hashtag sets -->
+        <div>
+          <label class="text-xs text-slate-400 block mb-1">
+            Hashtag Sets — one set per line, rotated randomly each upload
+          </label>
+          <textarea id="cfg-hashtags" rows="3" class="input font-mono text-xs"
+            placeholder="#shorts #viral #trending #foryou #fyp&#10;#shorts #satisfying #viral #musthave"></textarea>
         </div>
 
         <button type="submit" class="btn btn-primary w-full">Save Settings</button>
@@ -229,6 +262,19 @@
       if (s.youtube_description)    document.getElementById('cfg-desc').value = s.youtube_description;
       if (s.top_text)               document.getElementById('cfg-top-text').value = s.top_text;
       if (s.bottom_text)            document.getElementById('cfg-bot-text').value = s.bottom_text;
+      // Platform toggles
+      document.getElementById('cfg-enable-yt').checked = s.enable_youtube !== false;
+      document.getElementById('cfg-enable-ig').checked = !!s.enable_instagram;
+      document.getElementById('cfg-enable-fb').checked = !!s.enable_facebook;
+      // Affiliate links
+      if (s.affiliate_links) {
+        document.getElementById('cfg-affiliates').value =
+          s.affiliate_links.map(l => `${l.label} | ${l.url}`).join('\n');
+      }
+      // Hashtag sets
+      if (s.hashtag_sets) {
+        document.getElementById('cfg-hashtags').value = s.hashtag_sets.join('\n');
+      }
     } catch(e) { console.error(e); }
   }
 
@@ -247,6 +293,18 @@
       youtube_description: document.getElementById('cfg-desc').value.trim(),
       top_text: document.getElementById('cfg-top-text').value.trim(),
       bottom_text: document.getElementById('cfg-bot-text').value.trim(),
+      enable_youtube: document.getElementById('cfg-enable-yt').checked,
+      enable_instagram: document.getElementById('cfg-enable-ig').checked,
+      enable_facebook: document.getElementById('cfg-enable-fb').checked,
+      affiliate_links: document.getElementById('cfg-affiliates').value
+        .split('\n').map(s => s.trim()).filter(Boolean).map(line => {
+          const sep = line.indexOf(' | ');
+          return sep === -1
+            ? { label: line, url: '' }
+            : { label: line.slice(0, sep).trim(), url: line.slice(sep + 3).trim() };
+        }),
+      hashtag_sets: document.getElementById('cfg-hashtags').value
+        .split('\n').map(s => s.trim()).filter(Boolean),
     };
     await fetch('/api/settings', {
       method: 'POST',

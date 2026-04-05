@@ -3,9 +3,11 @@
   "download_count_per_run": 3,
   "upload_times": "08:00,14:00,20:00",
   "upload_limit_per_day": 3,
+  "enable_youtube": true,
+  "enable_instagram": false,
+  "enable_facebook": false,
   "privacy_status": "public",
   "youtube_title": "#{count} Viral Short | Amazing Content #shorts",
-  "youtube_description": "Watch this amazing viral short!\n\nLIKE \u2764\ufe0f  SUBSCRIBE \ud83d\udd14  COMMENT \ud83d\udcac\n\n#Shorts #Viral #Trending #Entertainment #ViralVideos #YouTube",
   "youtube_tags": "shorts,viral,trending,entertainment,viralvideos,foryou,awesome,youtubeshorts",
   "top_text": "Viral",
   "bottom_text": "Subscribe",
@@ -16,5 +18,14 @@
   "top_font_size": 80,
   "bottom_font_size": 80,
   "download_folder": "./downloads",
-  "output_folder": "./output"
+  "output_folder": "./output",
+  "affiliate_links": [
+    {"label": "Check this out", "url": "https://your-affiliate-link.com"}
+  ],
+  "hashtag_sets": [
+    "#shorts #viral #trending #foryou #fyp #entertainment",
+    "#shorts #viral #satisfying #trending #musthave #fyp",
+    "#shorts #trending #amazing #viral #youtubeshorts #foryou",
+    "#shorts #fyp #viral #explore #reels #entertainment"
+  ]
 }
