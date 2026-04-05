@@ -1,7 +1,22 @@
-opencv-python
+# Headless video processing (no GUI/display needed)
+opencv-python-headless
 numpy
 Pillow
+
+# TikTok downloader
 yt-dlp
+
+# Google / YouTube API
 google-auth
 google-auth-oauthlib
 google-api-python-client
+
+# Web dashboard
+flask
+gunicorn
+
+# Scheduler
+APScheduler
+
+# Legacy GUI app (test.py / test2.py) — not required for Railway deployment
+# customtkinter

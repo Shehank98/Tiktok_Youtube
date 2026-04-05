@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YT Shorts Automation Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background: #0f172a; color: #e2e8f0; }
+    .card { background: #1e293b; border-radius: 12px; padding: 1.5rem; }
+    .input { background: #0f172a; border: 1px solid #334155; border-radius: 6px;
+             padding: .5rem .75rem; width: 100%; color: #e2e8f0; font-size: .875rem; }
+    .input:focus { outline: none; border-color: #6366f1; }
+    .btn { padding: .5rem 1.25rem; border-radius: 6px; font-weight: 600;
+           cursor: pointer; font-size: .875rem; transition: opacity .15s; }
+    .btn:hover { opacity: .85; }
+    .btn-primary { background: #6366f1; color: #fff; }
+    .btn-green  { background: #22c55e; color: #fff; }
+    .btn-red    { background: #ef4444; color: #fff; }
+    .tag { display:inline-block; background:#1d4ed8; color:#bfdbfe;
+           border-radius:4px; padding:2px 8px; font-size:.75rem; margin:2px; }
+    #log-box { height:240px; overflow-y:auto; background:#0f172a;
+               border:1px solid #334155; border-radius:6px; padding:.75rem;
+               font-family:monospace; font-size:.75rem; color:#94a3b8; }
+    .status-dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
+    .dot-green { background:#22c55e; }
+    .dot-red   { background:#ef4444; }
+    .dot-yellow{ background:#eab308; }
+  </style>
+</head>
+<body class="min-h-screen p-6">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-indigo-400">YT Shorts Automation</h1>
+      <p class="text-slate-400 text-sm">TikTok → YouTube Shorts, fully automatic</p>
+    </div>
+    <div class="flex gap-3 items-center">
+      <span id="auth-badge" class="text-sm px-3 py-1 rounded-full bg-slate-700 text-slate-300">
+        Checking auth…
+      </span>
+      <a href="/auth" class="btn btn-primary text-sm">Setup YouTube Auth</a>
+    </div>
+  </div>
+
+  <!-- Status cards -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <div class="card">
+      <p class="text-slate-400 text-xs uppercase tracking-wider mb-1">Today's Uploads</p>
+      <p class="text-3xl font-bold text-white">
+        <span id="today-count">—</span>
+        <span class="text-slate-500 text-lg"> / </span>
+        <span id="daily-limit" class="text-slate-500 text-lg">—</span>
+      </p>
+    </div>
+    <div class="card">
+      <p class="text-slate-400 text-xs uppercase tracking-wider mb-1">Next Scheduled Run</p>
+      <p class="text-xl font-semibold text-indigo-300" id="next-run">—</p>
+    </div>
+    <div class="card flex flex-col gap-2">
+      <p class="text-slate-400 text-xs uppercase tracking-wider mb-1">Actions</p>
+      <button onclick="runNow()" class="btn btn-green w-full">▶ Run Now</button>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+
+    <!-- Settings panel -->
+    <div class="card">
+      <h2 class="text-lg font-semibold mb-4 text-indigo-300">Configuration</h2>
+      <form id="settings-form" onsubmit="saveSettings(event)" class="space-y-4">
+
+        <div>
+          <label class="text-xs text-slate-400 block mb-1">TikTok Channels (one per line, e.g. @username)</label>
+          <textarea id="cfg-channels" rows="3" class="input" placeholder="@user1&#10;@user2"></textarea>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs text-slate-400 block mb-1">Upload Times (UTC, HH:MM comma-sep)</label>
+            <input id="cfg-times" type="text" class="input" placeholder="08:00,14:00,20:00" />
+          </div>
+          <div>
+            <label class="text-xs text-slate-400 block mb-1">Daily Upload Limit</label>
+            <input id="cfg-limit" type="number" min="1" max="50" class="input" placeholder="3" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs text-slate-400 block mb-1">Downloads Per Run</label>
+            <input id="cfg-count" type="number" min="1" max="20" class="input" placeholder="3" />
+          </div>
+          <div>
+            <label class="text-xs text-slate-400 block mb-1">Privacy</label>
+            <select id="cfg-privacy" class="input">
+              <option value="public">Public</option>
+              <option value="unlisted">Unlisted</option>
+              <option value="private">Private</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="text-xs text-slate-400 block mb-1">YouTube Title Template (use #{count} for number)</label>
+          <input id="cfg-title" type="text" class="input" placeholder="#{count} Viral Short | Amazing Content" />
+        </div>
+
+        <div>
+          <label class="text-xs text-slate-400 block mb-1">Tags (comma-separated)</label>
+          <input id="cfg-tags" type="text" class="input" placeholder="shorts,viral,trending" />
+        </div>
+
+        <div>
+          <label class="text-xs text-slate-400 block mb-1">Description</label>
+          <textarea id="cfg-desc" rows="3" class="input" placeholder="Like and Subscribe!&#10;&#10;#shorts #viral"></textarea>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs text-slate-400 block mb-1">Top Bar Text</label>
+            <input id="cfg-top-text" type="text" class="input" placeholder="Viral" />
+          </div>
+          <div>
+            <label class="text-xs text-slate-400 block mb-1">Bottom Bar Text</label>
+            <input id="cfg-bot-text" type="text" class="input" placeholder="Subscribe" />
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-full">Save Settings</button>
+        <p id="save-msg" class="text-center text-green-400 text-sm hidden">Saved!</p>
+      </form>
+    </div>
+
+    <!-- Log panel -->
+    <div class="card flex flex-col">
+      <h2 class="text-lg font-semibold mb-3 text-indigo-300">Live Log</h2>
+      <div id="log-box"></div>
+    </div>
+  </div>
+
+  <!-- Upload history -->
+  <div class="card">
+    <h2 class="text-lg font-semibold mb-4 text-indigo-300">Upload History</h2>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-slate-400 text-left border-b border-slate-700">
+            <th class="pb-2 pr-4">#</th>
+            <th class="pb-2 pr-4">Title</th>
+            <th class="pb-2 pr-4">YouTube Link</th>
+            <th class="pb-2 pr-4">Status</th>
+            <th class="pb-2">Uploaded At (UTC)</th>
+          </tr>
+        </thead>
+        <tbody id="history-tbody">
+          <tr><td colspan="5" class="text-slate-500 py-4 text-center">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+<script>
+  // ── Status polling ──────────────────────────────────────────
+  async function loadStatus() {
+    try {
+      const res = await fetch('/api/status');
+      const d = await res.json();
+      document.getElementById('today-count').textContent = d.today_uploads;
+      document.getElementById('daily-limit').textContent = d.daily_limit;
+      document.getElementById('next-run').textContent =
+        d.next_runs.length ? new Date(d.next_runs[0]).toLocaleString() : 'None scheduled';
+      const badge = document.getElementById('auth-badge');
+      if (d.youtube_authed) {
+        badge.textContent = 'YouTube: Connected';
+        badge.className = 'text-sm px-3 py-1 rounded-full bg-green-900 text-green-300';
+      } else {
+        badge.textContent = 'YouTube: Not Auth';
+        badge.className = 'text-sm px-3 py-1 rounded-full bg-red-900 text-red-300';
+      }
+    } catch(e) { console.error(e); }
+  }
+
+  // ── History ─────────────────────────────────────────────────
+  async function loadHistory() {
+    try {
+      const res = await fetch('/api/history');
+      const rows = await res.json();
+      const tbody = document.getElementById('history-tbody');
+      if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-slate-500 py-4 text-center">No uploads yet</td></tr>';
+        return;
+      }
+      tbody.innerHTML = rows.map((r, i) => `
+        <tr class="border-b border-slate-800 hover:bg-slate-800/50">
+          <td class="py-2 pr-4 text-slate-500">${rows.length - i}</td>
+          <td class="py-2 pr-4 text-slate-200 max-w-xs truncate" title="${r.youtube_title||''}">${r.youtube_title||'—'}</td>
+          <td class="py-2 pr-4">
+            ${r.youtube_id ?
+              `<a href="https://youtube.com/watch?v=${r.youtube_id}" target="_blank"
+                  class="text-indigo-400 hover:underline">youtu.be/${r.youtube_id}</a>` : '—'}
+          </td>
+          <td class="py-2 pr-4">
+            <span class="status-dot ${r.status==='success'?'dot-green':'dot-red'} mr-1"></span>
+            ${r.status}
+          </td>
+          <td class="py-2 text-slate-400 text-xs">${r.uploaded_at||'—'}</td>
+        </tr>
+      `).join('');
+    } catch(e) { console.error(e); }
+  }
+
+  // ── Settings load/save ───────────────────────────────────────
+  async function loadSettings() {
+    try {
+      const res = await fetch('/api/settings');
+      const s = await res.json();
+      if (s.tiktok_channels) {
+        document.getElementById('cfg-channels').value =
+          Array.isArray(s.tiktok_channels) ? s.tiktok_channels.join('\n') : s.tiktok_channels;
+      }
+      if (s.upload_times)           document.getElementById('cfg-times').value = s.upload_times;
+      if (s.upload_limit_per_day)   document.getElementById('cfg-limit').value = s.upload_limit_per_day;
+      if (s.download_count_per_run) document.getElementById('cfg-count').value = s.download_count_per_run;
+      if (s.privacy_status)         document.getElementById('cfg-privacy').value = s.privacy_status;
+      if (s.youtube_title)          document.getElementById('cfg-title').value = s.youtube_title;
+      if (s.youtube_tags)           document.getElementById('cfg-tags').value = s.youtube_tags;
+      if (s.youtube_description)    document.getElementById('cfg-desc').value = s.youtube_description;
+      if (s.top_text)               document.getElementById('cfg-top-text').value = s.top_text;
+      if (s.bottom_text)            document.getElementById('cfg-bot-text').value = s.bottom_text;
+    } catch(e) { console.error(e); }
+  }
+
+  async function saveSettings(e) {
+    e.preventDefault();
+    const channels = document.getElementById('cfg-channels').value
+      .split('\n').map(s => s.trim()).filter(Boolean);
+    const payload = {
+      tiktok_channels: channels,
+      upload_times: document.getElementById('cfg-times').value.trim(),
+      upload_limit_per_day: parseInt(document.getElementById('cfg-limit').value) || 3,
+      download_count_per_run: parseInt(document.getElementById('cfg-count').value) || 3,
+      privacy_status: document.getElementById('cfg-privacy').value,
+      youtube_title: document.getElementById('cfg-title').value.trim(),
+      youtube_tags: document.getElementById('cfg-tags').value.trim(),
+      youtube_description: document.getElementById('cfg-desc').value.trim(),
+      top_text: document.getElementById('cfg-top-text').value.trim(),
+      bottom_text: document.getElementById('cfg-bot-text').value.trim(),
+    };
+    await fetch('/api/settings', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const msg = document.getElementById('save-msg');
+    msg.classList.remove('hidden');
+    setTimeout(() => msg.classList.add('hidden'), 3000);
+    loadStatus();
+  }
+
+  // ── Run Now ─────────────────────────────────────────────────
+  async function runNow() {
+    const btn = event.target;
+    btn.disabled = true;
+    btn.textContent = 'Starting…';
+    await fetch('/api/run-now', {method: 'POST'});
+    btn.textContent = 'Running…';
+    setTimeout(() => { btn.disabled = false; btn.textContent = '▶ Run Now'; }, 5000);
+  }
+
+  // ── Live log via SSE ─────────────────────────────────────────
+  const logBox = document.getElementById('log-box');
+  function appendLog(msg) {
+    const line = document.createElement('div');
+    line.textContent = msg;
+    logBox.appendChild(line);
+    if (logBox.children.length > 200) logBox.removeChild(logBox.firstChild);
+    logBox.scrollTop = logBox.scrollHeight;
+  }
+  const es = new EventSource('/api/logs');
+  es.onmessage = e => { if (e.data) appendLog(e.data); };
+  es.onerror = () => appendLog('[log stream disconnected — refresh to reconnect]');
+
+  // ── Init ────────────────────────────────────────────────────
+  loadSettings();
+  loadStatus();
+  loadHistory();
+  setInterval(loadStatus,  15000);
+  setInterval(loadHistory, 30000);
+</script>
+</body>
+</html>

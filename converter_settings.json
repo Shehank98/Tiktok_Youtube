@@ -1,14 +1,20 @@
 {
-  "download_folder": "C:/Users/user/Downloads/Tiktok_test/Download",
-  "output_folder": "C:/Users/user/Downloads/Tiktok_test/Output",
-  "youtube_title": "# Short | Amazing Shorts | Viral Content",
-  "youtube_tags": "shorts, viral, trending, entertainment, viralvideos, foryou, awesome",
+  "tiktok_channels": [],
+  "download_count_per_run": 3,
+  "upload_times": "08:00,14:00,20:00",
+  "upload_limit_per_day": 3,
+  "privacy_status": "public",
+  "youtube_title": "#{count} Viral Short | Amazing Content #shorts",
+  "youtube_description": "Watch this amazing viral short!\n\nLIKE \u2764\ufe0f  SUBSCRIBE \ud83d\udd14  COMMENT \ud83d\udcac\n\n#Shorts #Viral #Trending #Entertainment #ViralVideos #YouTube",
+  "youtube_tags": "shorts,viral,trending,entertainment,viralvideos,foryou,awesome,youtubeshorts",
   "top_text": "Viral",
-  "bottom_text": "Subscribe ",
+  "bottom_text": "Subscribe",
   "top_bg_color": "#000000",
   "bottom_bg_color": "#000000",
   "top_text_color": "#FFFFFF",
   "bottom_text_color": "#FFFFFF",
-  "top_font_size": 122,
-  "bottom_font_size": 127
+  "top_font_size": 80,
+  "bottom_font_size": 80,
+  "download_folder": "./downloads",
+  "output_folder": "./output"
 }

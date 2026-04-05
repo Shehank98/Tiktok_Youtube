@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>YouTube Auth Setup</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>body { background:#0f172a; color:#e2e8f0; }</style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-6">
+  <div style="background:#1e293b;border-radius:12px;padding:2rem;max-width:560px;width:100%;">
+    <h1 class="text-xl font-bold text-indigo-400 mb-2">YouTube OAuth Setup</h1>
+    <p class="text-slate-400 text-sm mb-6">
+      This is a one-time setup. After this, all uploads run automatically.
+    </p>
+
+    <div class="mb-6 p-4 rounded-lg" style="background:#0f172a;border:1px solid #334155;">
+      <p class="text-sm text-slate-300 mb-2 font-semibold">Step 1 — Open this link in your browser:</p>
+      <a href="{{ auth_url }}" target="_blank"
+         class="text-indigo-400 text-sm break-all hover:underline">{{ auth_url }}</a>
+    </div>
+
+    <div class="mb-6 p-4 rounded-lg" style="background:#0f172a;border:1px solid #334155;">
+      <p class="text-sm text-slate-300 mb-2 font-semibold">Step 2 — Log in with your Google account and allow access.</p>
+      <p class="text-sm text-slate-400">Google will show you a code on the page. Copy it.</p>
+    </div>
+
+    <form method="POST" action="/auth/callback">
+      <label class="text-sm text-slate-300 block mb-2 font-semibold">
+        Step 3 — Paste the code here:
+      </label>
+      <input name="code" type="text" required
+             placeholder="Paste authorization code…"
+             style="background:#0f172a;border:1px solid #334155;border-radius:6px;
+                    padding:.5rem .75rem;width:100%;color:#e2e8f0;font-size:.875rem;margin-bottom:1rem;" />
+      <button type="submit"
+              style="background:#6366f1;color:#fff;padding:.5rem 1.5rem;border-radius:6px;
+                     font-weight:600;cursor:pointer;width:100%;">
+        Authorize
+      </button>
+    </form>
+
+    <p class="text-center text-slate-500 text-xs mt-4">
+      <a href="/" class="hover:text-slate-300">← Back to Dashboard</a>
+    </p>
+  </div>
+</body>
+</html>
